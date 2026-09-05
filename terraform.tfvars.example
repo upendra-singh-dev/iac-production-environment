@@ -1,0 +1,9 @@
+# Copy to terraform.tfvars and fill in. No secrets belong in this file.
+name               = "northwind-prod"
+region             = "eu-west-1"
+image              = "123456789012.dkr.ecr.eu-west-1.amazonaws.com/northwind-api:sha-abc1234"
+ecr_repository_arn = "arn:aws:ecr:eu-west-1:123456789012:repository/northwind-api"
+certificate_arn    = "arn:aws:acm:eu-west-1:123456789012:certificate/00000000-0000-0000-0000-000000000000"
+domain_name        = "shop.example.com"
+monthly_budget_usd = 150
+db_multi_az        = false
