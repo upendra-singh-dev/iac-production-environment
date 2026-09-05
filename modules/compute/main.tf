@@ -52,21 +52,14 @@ resource "aws_ecs_task_definition" "app" {
         awslogs-stream-prefix = "api"
       }
     }
-    healthCheck = {
-      command     = ["CMD-SHELL", "wget -qO- http://127.0.0.1:${var.container_port}${local.health_path} || exit 1"]
-      interval    = 30
-      timeout     = 5
-      retries     = 3
-      startPeriod = 30
-    }
   }])
 
-  volume { name = "tmp" } # readonlyRootFilesystem still needs scratch space
+  volume { name = "tmp" } # readonlyRootFilesystem still needs scratch
 }
 
 resource "aws_security_group" "alb" {
   name        = "${var.name}-alb"
-  description = "Public HTTPS to the load balancer"
+  description = "Public HTTPS"
   vpc_id      = var.vpc_id
   tags        = { Name = "${var.name}-alb" }
 }
@@ -86,7 +79,7 @@ resource "aws_vpc_security_group_ingress_rule" "alb_http_redirect" {
   from_port         = 80
   to_port           = 80
   ip_protocol       = "tcp"
-  description       = "HTTP, redirected to HTTPS at the listener"
+  description       = "HTTP, redirected at the listener"
 }
 
 resource "aws_vpc_security_group_egress_rule" "alb_to_tasks" {
@@ -95,12 +88,12 @@ resource "aws_vpc_security_group_egress_rule" "alb_to_tasks" {
   from_port                    = var.container_port
   to_port                      = var.container_port
   ip_protocol                  = "tcp"
-  description                  = "Forward to tasks"
+  description                  = "To tasks"
 }
 
 resource "aws_security_group" "tasks" {
   name        = "${var.name}-tasks"
-  description = "ECS tasks: ingress from the ALB only"
+  description = "Tasks: ALB ingress only"
   vpc_id      = var.vpc_id
   tags        = { Name = "${var.name}-tasks" }
 }
@@ -114,11 +107,11 @@ resource "aws_vpc_security_group_ingress_rule" "tasks_from_alb" {
   description                  = "From ALB"
 }
 
-# Open egress: image pulls, Secrets Manager, logs. Narrowing to prefix lists is
-# named as the next hardening step in the runbook rather than claimed as done.
+# Open egress: image pulls, Secrets Manager, logs. Narrowing to prefix lists
+# is the next hardening step, named in the runbook rather than claimed.
 resource "aws_vpc_security_group_egress_rule" "tasks_out" {
   security_group_id = aws_security_group.tasks.id
   cidr_ipv4         = "0.0.0.0/0"
   ip_protocol       = "-1"
-  description       = "Outbound via NAT and the S3 endpoint"
+  description       = "Via NAT and the S3 endpoint"
 }

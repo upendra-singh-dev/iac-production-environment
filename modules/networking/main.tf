@@ -32,8 +32,8 @@ resource "aws_subnet" "private" {
   tags              = { Name = "${var.name}-private-${each.key}", Tier = "private" }
 }
 
-# COST TRADE-OFF: one NAT gateway, not one per AZ. A second is $32.85/mo and the
-# cap does not have room. Consequence is quantified in the runbook.
+# COST TRADE-OFF: one NAT, not one per AZ. A second is $32.85/mo; the
+# consequence is quantified in the runbook.
 resource "aws_eip" "nat" {
   domain = "vpc"
   tags   = { Name = "${var.name}-nat" }
@@ -76,7 +76,7 @@ resource "aws_route_table_association" "private" {
   route_table_id = aws_route_table.private.id
 }
 
-# Free gateway endpoint. Keeps asset traffic off the NAT, which bills per GB.
+# Free gateway endpoint: keeps asset traffic off the per-GB NAT.
 resource "aws_vpc_endpoint" "s3" {
   vpc_id            = aws_vpc.this.id
   service_name      = "com.amazonaws.${var.region}.s3"

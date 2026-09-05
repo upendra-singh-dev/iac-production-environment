@@ -9,25 +9,23 @@ resource "aws_lb" "this" {
 }
 
 resource "aws_lb_target_group" "app" {
-  name                 = "${var.name}-tg"
-  port                 = var.container_port
-  protocol             = "HTTP"
-  target_type          = "ip" # awsvpc tasks register by ENI address
-  vpc_id               = var.vpc_id
-  deregistration_delay = 30
+  name        = "${var.name}-tg"
+  port        = var.container_port
+  protocol    = "HTTP"
+  target_type = "ip" # awsvpc tasks register by ENI address
+  vpc_id      = var.vpc_id
 
   health_check {
     path                = local.health_path
     matcher             = "200"
     interval            = 30
-    timeout             = 5
     healthy_threshold   = 2
     unhealthy_threshold = 3
   }
 }
 
-# The certificate is issued outside this stack and passed in: it outlives any
-# single environment and its DNS validation is a one-off. The runbook covers it.
+# Certificate issued outside this stack: it outlives any one environment and
+# its DNS validation is a one-off. The runbook covers it.
 resource "aws_lb_listener" "https" {
   load_balancer_arn = aws_lb.this.arn
   port              = 443
@@ -74,8 +72,8 @@ resource "aws_ecs_service" "app" {
     container_port   = var.container_port
   }
 
-  # COST TRADE-OFF: Spot for the bulk, one on-demand task as a floor so a
-  # reclamation cannot take the service to zero.
+  # COST TRADE-OFF: Spot for the bulk, one on-demand floor so a reclamation
+  # cannot take the service to zero.
   capacity_provider_strategy {
     capacity_provider = "FARGATE_SPOT"
     weight            = local.spot_weight

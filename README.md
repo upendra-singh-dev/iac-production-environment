@@ -137,6 +137,9 @@ and a variable validation refuses a value below 1.
 
 - Task egress is `0.0.0.0/0`. Narrowing to prefix lists and interface endpoints
   is the next hardening step; it is not done here.
+- The assets bucket has no versioning or lifecycle rule, and no explicit
+  encryption block (S3 applies SSE-S3 by default). Versioning is the one worth
+  adding first.
 - No autoscaling policy. `desired_count` is fixed at 2.
 - No WAF on the ALB (~$8/month plus per-request) and no VPC flow logs.
 - `terraform apply` has not been run against a live account: this environment

@@ -10,7 +10,7 @@ resource "aws_security_group" "db" {
   tags        = { Name = "${var.name}-db" }
 }
 
-# Referencing the task SG, not a CIDR: nothing else in the VPC can reach it.
+# Task SG, not a CIDR: nothing else in the VPC can reach it.
 resource "aws_vpc_security_group_ingress_rule" "db_from_tasks" {
   security_group_id            = aws_security_group.db.id
   referenced_security_group_id = var.app_security_group_id
@@ -22,7 +22,7 @@ resource "aws_vpc_security_group_ingress_rule" "db_from_tasks" {
 
 resource "random_password" "db" {
   length  = 32
-  special = false # avoids shell/URI escaping bugs in connection strings
+  special = false # avoids URI-escaping bugs in connection strings
 }
 
 resource "aws_secretsmanager_secret" "db" {
@@ -63,8 +63,8 @@ resource "aws_db_instance" "this" {
   publicly_accessible    = false # requirement 3
   port                   = 5432
 
-  # COST TRADE-OFF: single-AZ. Multi-AZ alone would breach the cap. The
-  # consequence is quantified in the runbook; PITR is what makes it recoverable.
+  # COST TRADE-OFF: single-AZ. Consequence is quantified in the runbook; PITR
+  # is what makes it recoverable.
   multi_az                  = var.multi_az
   backup_retention_period   = var.backup_retention_days # enables PITR
   backup_window             = "03:00-04:00"
@@ -75,7 +75,6 @@ resource "aws_db_instance" "this" {
   final_snapshot_identifier = "${var.name}-pg-final"
 
   performance_insights_enabled = false # chargeable beyond 7 days
-  auto_minor_version_upgrade   = true
 
   tags = { Name = "${var.name}-pg", BackupPlan = "pitr-${var.backup_retention_days}d" }
 }

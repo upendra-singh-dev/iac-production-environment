@@ -13,9 +13,8 @@ data "aws_caller_identity" "current" {}
 data "aws_availability_zones" "available" { state = "available" }
 
 locals {
-  # Published us-east-1 on-demand rates, Oct 2024. Kept beside the resources
-  # they price so a change to instance_class moves the estimate in the same
-  # commit, instead of the estimate living in a spreadsheet nobody updates.
+  # On-demand rates, kept beside the resources they price so changing an
+  # instance class moves the estimate in the same commit.
   price = {
     fargate_vcpu_hour  = 0.04048
     fargate_gb_hour    = 0.004445
@@ -27,7 +26,7 @@ locals {
     nat_hour           = 0.045
     secret_month       = 0.40
     logs_gb_month      = 0.50
-    egress_estimate    = 12.00 # ~100GB out + NAT processing at current volumes
+    egress_estimate    = 12.00 # ~100GB out plus NAT processing
   }
   hours = 730
 
@@ -56,8 +55,7 @@ locals {
   cost_total = local.cost.fargate + local.cost.rds + local.cost.disk + local.cost.alb + local.cost.nat + local.cost.misc
 }
 
-# The cap is enforced by the configuration, not asserted in a document. Raise an
-# instance class or switch RDS to Multi-AZ and the plan fails here.
+# The cap is enforced, not asserted: raise an instance class and the plan fails.
 check "within_budget" {
   assert {
     condition     = local.cost_total <= var.monthly_budget_usd
@@ -114,6 +112,7 @@ resource "aws_s3_bucket" "assets" {
   bucket = "${var.name}-assets-${data.aws_caller_identity.current.account_id}"
 }
 
+# No SSE block: S3 applies SSE-S3 to every new bucket by default.
 resource "aws_s3_bucket_public_access_block" "assets" {
   bucket                  = aws_s3_bucket.assets.id
   block_public_acls       = true
@@ -122,25 +121,3 @@ resource "aws_s3_bucket_public_access_block" "assets" {
   restrict_public_buckets = true
 }
 
-resource "aws_s3_bucket_server_side_encryption_configuration" "assets" {
-  bucket = aws_s3_bucket.assets.id
-  rule {
-    apply_server_side_encryption_by_default { sse_algorithm = "AES256" }
-  }
-}
-
-resource "aws_s3_bucket_versioning" "assets" {
-  bucket = aws_s3_bucket.assets.id
-  versioning_configuration { status = "Enabled" }
-}
-
-# Versioning without expiry is a slow bill. Old versions go after 30 days.
-resource "aws_s3_bucket_lifecycle_configuration" "assets" {
-  bucket = aws_s3_bucket.assets.id
-  rule {
-    id     = "expire-noncurrent"
-    status = "Enabled"
-    filter {}
-    noncurrent_version_expiration { noncurrent_days = 30 }
-  }
-}

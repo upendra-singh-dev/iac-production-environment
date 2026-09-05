@@ -6,8 +6,8 @@ terraform {
     random = { source = "hashicorp/random", version = "~> 3.6" }
   }
 
-  # Partial config: bucket and table come from -backend-config so the same code
-  # serves every account. See the runbook for the one-off bootstrap.
+  # Partial config: bucket comes from -backend-config, so one repo serves any
+  # account. Runbook covers the one-off bootstrap.
 
   backend "s3" {
     key            = "production/terraform.tfstate"
